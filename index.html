@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>黄向华 | 嵌入式硬件作品集</title>
+<meta name="description" content="黄向华 · 嵌入式硬件工程师作品集：ESP32-S3 便携游戏主机、STM32F407 智能停车场系统等项目展示。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230A100D'/%3E%3Crect x='8' y='8' width='16' height='16' rx='2' fill='none' stroke='%233DDC84' stroke-width='2'/%3E%3Cpath d='M14 14h4v4h-4z' fill='%233DDC84'/%3E%3Cpath d='M8 4v4M16 4v4M24 4v4M8 24v4M16 24v4M24 24v4M4 8h4M4 16h4M4 24h4M24 8h4M24 16h4M24 24h4' stroke='%23E8B64C' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* ============ 设计令牌 ============ */
+:root {
+  --bg: #0A100D;
+  --bg-2: #0D1511;
+  --card: #121C16;
+  --line: rgba(148, 195, 165, 0.14);
+  --line-strong: rgba(148, 195, 165, 0.28);
+  --ink: #E9F2EB;
+  --muted: #9AB0A2;
+  --dim: #64796C;
+  --green: #3DDC84;
+  --green-soft: rgba(61, 220, 132, 0.12);
+  --green-line: rgba(61, 220, 132, 0.35);
+  --gold: #E8B64C;
+  --radius: 14px;
+  --nav-h: 68px;
+  --font-body: "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  line-height: 1.75;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: rgba(61, 220, 132, 0.28); color: #fff; }
+
+img { max-width: 100%; display: block; }
+
+a { color: var(--green); text-decoration: none; }
+a:hover { color: #6CE8A5; }
+
+.mono { font-family: var(--font-mono); }
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+/* ============ 导航 ============ */
+.nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--nav-h);
+  z-index: 100;
+  background: rgba(10, 16, 13, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  height: 100%;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.brand:hover { color: var(--ink); }
+.brand-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--green-line);
+  display: grid;
+  place-items: center;
+  background: var(--green-soft);
+  flex: none;
+}
+.brand-badge svg { width: 18px; height: 18px; }
+.brand-name { font-size: 1rem; }
+.brand-role {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  list-style: none;
+}
+.nav-links a {
+  font-size: 0.92rem;
+  color: var(--muted);
+  padding: 6px 2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-links a.active { color: var(--green); border-bottom-color: var(--green); }
+.nav-gh {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 14px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.nav-gh:hover { color: var(--green); border-color: var(--green-line); }
+.nav-gh svg { width: 15px; height: 15px; }
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  color: var(--ink);
+  align-items: center;
+  justify-content: center;
+}
+.nav-toggle svg { width: 20px; height: 20px; }
+
+/* ============ Hero ============ */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding: calc(var(--nav-h) + 48px) 0 0;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url("https://aka.doubaocdn.com/s/V88HsvgaJ9");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.55;
+}
+.hero-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 42%, rgba(10, 16, 13, 0.15) 0%, rgba(10, 16, 13, 0.88) 78%, var(--bg) 100%),
+    linear-gradient(to bottom, rgba(10, 16, 13, 0.55) 0%, rgba(10, 16, 13, 0.15) 40%, var(--bg) 100%);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+  text-align: center;
+}
+.hero-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 18px;
+}
+.hero h1 {
+  font-size: clamp(2.5rem, 7vw, 4.3rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+.hero-title {
+  margin-top: 14px;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+  color: var(--muted);
+}
+.hero-title .dot { color: var(--green); }
+.hero-tags {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.hero-tags .tag {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: rgba(18, 28, 22, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 16px;
+}
+.hero-cta { margin-top: 34px; display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 28px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.98rem;
+  border: 1px solid transparent;
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.btn svg { width: 17px; height: 17px; }
+.btn.solid {
+  background: var(--green);
+  color: #06220F;
+  box-shadow: 0 8px 24px rgba(61, 220, 132, 0.28);
+}
+.btn.solid:hover { background: #6CE8A5; color: #06220F; transform: translateY(-2px); }
+.btn.ghost {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: rgba(18, 28, 22, 0.55);
+}
+.btn.ghost:hover { border-color: var(--green); color: var(--green); transform: translateY(-2px); }
+
+/* 签名元素：示波器波形 */
+.scope {
+  position: relative;
+  z-index: 2;
+  margin: 64px auto 0;
+  max-width: 1080px;
+  padding: 0 24px;
+}
+.scope svg { width: 100%; height: auto; display: block; }
+.scope .trace-main {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px rgba(61, 220, 132, 0.55));
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: drawTrace 2.2s ease-out forwards;
+}
+.scope .trace-echo {
+  fill: none;
+  stroke: rgba(61, 220, 132, 0.22);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@keyframes drawTrace { to { stroke-dashoffset: 0; } }
+.scope .pad {
+  animation: padPulse 2.8s ease-in-out infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.scope .pad:nth-of-type(2) { animation-delay: 0.4s; }
+.scope .pad:nth-of-type(3) { animation-delay: 0.8s; }
+.scope .pad:nth-of-type(4) { animation-delay: 1.2s; }
+.scope .pad:nth-of-type(5) { animation-delay: 1.6s; }
+@keyframes padPulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.35; }
+}
+.scope-label {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.blink-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 1.6s steps(1) infinite;
+  vertical-align: baseline;
+}
+@keyframes blink { 50% { opacity: 0.25; } }
+
+/* hero 角落走线装饰 */
+.corner-trace { position: absolute; z-index: 1; opacity: 0.5; pointer-events: none; }
+.corner-trace svg { width: 180px; height: 180px; }
+.corner-trace.tl { top: calc(var(--nav-h) + 26px); left: 18px; }
+.corner-trace.br { bottom: 150px; right: 18px; transform: rotate(180deg); }
+
+/* ============ 通用区块 ============ */
+section { position: relative; scroll-margin-top: calc(var(--nav-h) + 8px); }
+.section { padding: 96px 0; }
+.section.alt { background: var(--bg-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.section-head { margin-bottom: 48px; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  color: var(--green);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.section-head h2 {
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  font-weight: 700;
+}
+.section-head .sub { margin-top: 10px; color: var(--muted); max-width: 640px; }
+
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+html.no-anim .reveal { opacity: 1; transform: none; transition: none; }
+
+/* ============ 作品 ============ */
+.projects { display: grid; gap: 28px; }
+.project {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 36px;
+  display: grid;
+  gap: 26px;
+}
+.project-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.project-index {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+}
+.project-date {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--green);
+}
+.project h3 { font-size: clamp(1.2rem, 2.6vw, 1.5rem); font-weight: 700; }
+.project-overview { color: var(--muted); font-size: 0.98rem; max-width: 720px; }
+
+/* 规格表 */
+.project-specs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.project-specs > div {
+  background: var(--card-2);
+  padding: 13px 16px;
+  display: grid;
+  gap: 2px;
+}
+.project-specs dt {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.project-specs dd { font-size: 0.9rem; color: var(--ink); }
+
+/* 分区（亮点 / 技术栈） */
+.project-section { display: grid; gap: 12px; }
+.ps-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.project-points { list-style: none; display: grid; gap: 9px; }
+.project-points li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--muted);
+  font-size: 0.94rem;
+  text-wrap: pretty;
+}
+.project-points li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  opacity: 0.75;
+}
+.project-points b { color: var(--ink); font-weight: 600; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--green-soft);
+  border: 1px solid var(--green-line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+/* 竞赛成果 */
+.achievement {
+  border: 1px dashed var(--gold);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(232, 182, 76, 0.07), rgba(61, 220, 132, 0.05));
+  padding: 26px 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.achievement-medal { flex: none; width: 44px; height: 44px; color: var(--gold); }
+.achievement-medal svg { width: 100%; height: 100%; }
+.achievement h3 { font-size: 1.08rem; font-weight: 700; }
+.achievement p { margin-top: 4px; color: var(--muted); font-size: 0.92rem; }
+.achievement .year {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+/* ============ 技术栈 ============ */
+.stack-groups { display: grid; gap: 22px; }
+.stack-group {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 18px;
+  align-items: start;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.stack-group:last-child { border-bottom: none; padding-bottom: 0; }
+.stack-group .sg-label {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  color: var(--green);
+  text-transform: uppercase;
+  padding-top: 6px;
+}
+.sg-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sg-chips .tag {
+  background: var(--card);
+  border-color: var(--line);
+  font-size: 0.8rem;
+  padding: 5px 14px;
+}
+
+/* ============ 页脚 ============ */
+.footer {
+  border-top: 1px solid var(--line);
+  background: var(--bg-2);
+  padding: 40px 0;
+}
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--dim);
+}
+.footer-meta a { color: var(--dim); display: inline-flex; align-items: center; gap: 6px; }
+.footer-meta a:hover { color: var(--green); }
+.footer-meta a svg { width: 14px; height: 14px; }
+
+/* ============ 响应式 ============ */
+@media (max-width: 820px) {
+  .project-specs { grid-template-columns: repeat(2, 1fr); }
+  .stack-group { grid-template-columns: 1fr; gap: 10px; }
+}
+@media (max-width: 760px) {
+  .nav-toggle { display: flex; }
+  .nav-links {
+    position: fixed;
+    top: var(--nav-h);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: rgba(10, 16, 13, 0.97);
+    border-bottom: 1px solid var(--line);
+    padding: 8px 24px 18px;
+    display: none;
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a { display: block; padding: 13px 4px; }
+  .nav-links a.active { color: var(--green); }
+  .section { padding: 72px 0; }
+  .project { padding: 26px 22px; }
+  .corner-trace { display: none; }
+  .scope { margin-top: 48px; }
+  .achievement .year { display: none; }
+}
+@media (max-width: 520px) {
+  .project-specs { grid-template-columns: 1fr; }
+}
+
+/* 减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 导航 ===== -->
+<header class="nav">
+  <div class="nav-inner">
+    <a href="#top" class="brand">
+      <span class="brand-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="6" y="6" width="12" height="12" rx="1.5"></rect>
+          <path d="M6 2v4M12 2v4M18 2v4M6 18v4M12 18v4M18 18v4M2 6h4M2 12h4M2 18h4M18 6h4M18 12h4M18 18h4"></path>
+        </svg>
+      </span>
+      <span>
+        <span class="brand-name">黄向华</span>
+        <span class="brand-role mono">HARDWARE WORKS</span>
+      </span>
+    </a>
+    <nav aria-label="主导航">
+      <ul class="nav-links" id="navMenu">
+        <li><a href="#works">作品</a></li>
+        <li><a href="#stack">技术栈</a></li>
+        <li><a class="nav-gh" href="https://github.com/huangxh1210" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"></path></svg>
+          GitHub
+        </a></li>
+      </ul>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h16"></path>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- ===== Hero ===== -->
+<section class="hero" id="top">
+  <div class="hero-bg" role="presentation"></div>
+  <div class="corner-trace tl" aria-hidden="true">
+    <svg viewBox="0 0 180 180" fill="none" stroke="rgba(232,182,76,0.5)" stroke-width="1.4">
+      <path d="M0 34h46l14-14h22l10 10h36v26h-18l-12 12H44v28h-18V62H0z"></path>
+      <circle cx="0" cy="34" r="3.5" fill="#E8B64C"></circle>
+      <circle cx="62" cy="40" r="3.5" fill="#E8B64C"></circle>
+      <circle cx="110" cy="86" r="3.5" fill="#E8B64C"></circle>
+    </svg>
+  </div>
+  <div class="corner-trace br" aria-hidden="true">
+    <svg viewBox="0 0 180 180" fill="none" stroke="rgba(61,220,132,0.45)" stroke-width="1.4">
+      <path d="M0 34h46l14-14h22l10 10h36v26h-18l-12 12H44v28h-18V62H0z"></path>
+      <circle cx="0" cy="34" r="3.5" fill="#3DDC84"></circle>
+      <circle cx="62" cy="40" r="3.5" fill="#3DDC84"></circle>
+      <circle cx="110" cy="86" r="3.5" fill="#3DDC84"></circle>
+    </svg>
+  </div>
+
+  <div class="hero-content">
+    <p class="hero-kicker">EMBEDDED HARDWARE PORTFOLIO</p>
+    <h1>黄向华</h1>
+    <p class="hero-title">嵌入式硬件工程师<span class="dot"> · </span>从电源与 PCB 到固件与系统</p>
+    <div class="hero-tags">
+      <span class="tag">硬件设计</span>
+      <span class="tag">固件开发</span>
+      <span class="tag">软硬件联调</span>
+    </div>
+    <div class="hero-cta">
+      <a class="btn solid" href="https://github.com/huangxh1210" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"></path></svg>
+        查看 GitHub
+      </a>
+    </div>
+  </div>
+
+  <!-- 签名元素：示波器波形 -->
+  <div class="scope" aria-hidden="true">
+    <svg viewBox="0 0 1080 120" preserveAspectRatio="none">
+      <path class="trace-echo" d="M0,72 H236 L258,72 L280,26 L302,118 L324,42 L346,72 H700 L722,72 L744,16 L766,128 L788,46 L810,72 H1080" transform="translate(0 7)"></path>
+      <path class="trace-main" d="M0,72 H236 L258,72 L280,26 L302,118 L324,42 L346,72 H700 L722,72 L744,16 L766,128 L788,46 L810,72 H1080"></path>
+      <circle class="pad" cx="280" cy="26" r="4" fill="#E8B64C"></circle>
+      <circle class="pad" cx="302" cy="118" r="4" fill="#E8B64C"></circle>
+      <circle class="pad" cx="744" cy="16" r="4" fill="#E8B64C"></circle>
+      <circle class="pad" cx="766" cy="128" r="4" fill="#E8B64C"></circle>
+      <circle class="pad" cx="900" cy="72" r="4" fill="#E8B64C"></circle>
+    </svg>
+    <div class="scope-label">
+      <span>CH1 · HW-PROFILE</span>
+      <span><span class="blink-dot" aria-hidden="true"></span> 50ms/div</span>
+    </div>
+  </div>
+</section>
+
+<main>
+  <!-- ===== 作品 ===== -->
+  <section class="section" id="works">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">// WORKS</p>
+        <h2>作品</h2>
+        <p class="sub">两个从硬件到固件的完整项目，覆盖电源设计、PCB 布局布线、外设驱动与系统联调。</p>
+      </div>
+      <div class="projects">
+        <article class="project reveal">
+          <div class="project-top">
+            <span class="project-index">PROJECT 01</span>
+            <span class="project-date">2026.07 — 2026.08</span>
+          </div>
+          <h3>基于 ESP32-S3 的高性能便携游戏主机</h3>
+          <p class="project-overview">从电源与 PCB 设计到固件开发的全流程自制掌上红白机：移植 NES 模拟器核心，支持 WiFi 网页上传 ROM，免拆机更新游戏。</p>
+          <dl class="project-specs">
+            <div><dt>MCU</dt><dd>ESP32-S3 · 8MB PSRAM</dd></div>
+            <div><dt>DISPLAY</dt><dd>ST7789 · SPI</dd></div>
+            <div><dt>AUDIO</dt><dd>MAX98357A · I2S</dd></div>
+            <div><dt>INPUT</dt><dd>74HC165 按键扩展</dd></div>
+            <div><dt>POWER</dt><dd>5V / 3.3V 双路 DCDC</dd></div>
+            <div><dt>EMULATOR</dt><dd>nofrendo · 40+ mapper</dd></div>
+          </dl>
+          <div class="project-section">
+            <span class="ps-label">HIGHLIGHTS</span>
+            <ul class="project-points">
+              <li><b>硬件设计</b>——完成双路 DCDC 电源设计与整机原理图、PCB 布局布线（优化大电流走线、电源环路与散热），打样焊接并验证电路稳定。</li>
+              <li><b>外设与资源</b>——驱动 ST7789 屏、MAX98357A 音频、74HC165 按键扩展；定制 Flash 分区表，配置 8MB PSRAM 并修复缓存一致性问题。</li>
+              <li><b>模拟器与功能</b>——移植 nofrendo 核心，适配 6502 CPU、PPU / APU 及 40+ mapper；自研中文 ROM 菜单（脏矩形刷新）与 WiFi 网页 ROM 上传。</li>
+              <li><b>硬件排障</b>——定位并修复屏幕 BGR 色序反相、I2S 单声道无声、PSRAM 缓存异常等硬件级问题。</li>
+            </ul>
+          </div>
+          <div class="project-section">
+            <span class="ps-label">STACK</span>
+            <div class="tags">
+              <span class="tag">PlatformIO</span>
+              <span class="tag">C++</span>
+              <span class="tag">ESP32-S3</span>
+              <span class="tag">TFT_eSPI</span>
+              <span class="tag">nofrendo</span>
+              <span class="tag">嘉立创 EDA</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="project reveal">
+          <div class="project-top">
+            <span class="project-index">PROJECT 02</span>
+            <span class="project-date">2026.05 — 2026.06</span>
+          </div>
+          <h3>基于 STM32F407 的智能停车场管理系统</h3>
+          <p class="project-overview">以 STM32F407 为主控，集成 RC522 射频读卡、MaixCAM 车牌识别、红外检测与舵机道闸，配套上位机构建完整停车收费系统。</p>
+          <dl class="project-specs">
+            <div><dt>MCU</dt><dd>STM32F407 · 标准外设库</dd></div>
+            <div><dt>RFID</dt><dd>RC522 · SPI</dd></div>
+            <div><dt>VISION</dt><dd>MaixCAM 车牌识别</dd></div>
+            <div><dt>ACTUATOR</dt><dd>SG90 舵机 · PWM</dd></div>
+            <div><dt>HOST</dt><dd>Python · Tkinter · SQLite</dd></div>
+            <div><dt>LINK</dt><dd>自定义串口协议</dd></div>
+          </dl>
+          <div class="project-section">
+            <span class="ps-label">HIGHLIGHTS</span>
+            <ul class="project-points">
+              <li><b>外设驱动</b>——编写 RC522（SPI）射频读写、OLED、SG90 舵机（PWM）、红外检测等驱动，基于 TIM2 构建 1ms 系统时基。</li>
+              <li><b>通信协议</b>——自定义串口通信协议（0xAA / 0x55 帧头，含心跳、进出场、计费等 20+ 命令字），实现 STM32 与上位机双向数据同步。</li>
+              <li><b>上位机</b>——Python（Tkinter）+ SQLite 开发管理上位机，实现卡片管理、计费配置、进出场记录查询。</li>
+              <li><b>业务流程</b>——打通车辆进出场识别、车牌绑定、余额计费、道闸开合与 OLED 显示的完整流程。</li>
+            </ul>
+          </div>
+          <div class="project-section">
+            <span class="ps-label">STACK</span>
+            <div class="tags">
+              <span class="tag">STM32F407</span>
+              <span class="tag">Keil MDK5</span>
+              <span class="tag">C</span>
+              <span class="tag">RC522</span>
+              <span class="tag">MaixCAM</span>
+              <span class="tag">Python</span>
+              <span class="tag">SQLite</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="achievement reveal" style="margin-top:28px">
+        <div class="achievement-medal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="9" r="6"></circle>
+            <path d="M8.7 13.6 7 22l5-3 5 3-1.7-8.4"></path>
+            <path d="M12 6.5 13 8l1.7.2-1.2 1.1.3 1.7L12 10.4l-1.8.6.3-1.7L9.3 8.2 11 8z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3>全国大学生电子设计竞赛（H 题）· 广东赛区二等奖</h3>
+          <p>竞赛中负责小组硬件部分：电路方案设计、PCB 制作与硬件调试。</p>
+        </div>
+        <span class="year">2026</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 技术栈 ===== -->
+  <section class="section alt" id="stack">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">// TOOLCHAIN</p>
+        <h2>技术栈</h2>
+        <p class="sub">项目中所使用的平台、工具与接口，按类别汇总。</p>
+      </div>
+      <div class="stack-groups reveal">
+        <div class="stack-group">
+          <span class="sg-label">主控平台</span>
+          <div class="sg-chips">
+            <span class="tag">STM32</span>
+            <span class="tag">ESP32-S3</span>
+            <span class="tag">51 单片机</span>
+          </div>
+        </div>
+        <div class="stack-group">
+          <span class="sg-label">开发环境</span>
+          <div class="sg-chips">
+            <span class="tag">PlatformIO</span>
+            <span class="tag">Keil MDK5</span>
+            <span class="tag">嘉立创 EDA</span>
+            <span class="tag">Altium Designer</span>
+          </div>
+        </div>
+        <div class="stack-group">
+          <span class="sg-label">编程语言</span>
+          <div class="sg-chips">
+            <span class="tag">C</span>
+            <span class="tag">C++</span>
+            <span class="tag">Python</span>
+          </div>
+        </div>
+        <div class="stack-group">
+          <span class="sg-label">接口协议</span>
+          <div class="sg-chips">
+            <span class="tag">SPI</span>
+            <span class="tag">I2S</span>
+            <span class="tag">UART</span>
+            <span class="tag">PWM</span>
+            <span class="tag">CAN</span>
+            <span class="tag">ADC / DAC</span>
+            <span class="tag">自定义串口协议</span>
+          </div>
+        </div>
+        <div class="stack-group">
+          <span class="sg-label">硬件能力</span>
+          <div class="sg-chips">
+            <span class="tag">DCDC 电源设计</span>
+            <span class="tag">多层 PCB 布局布线</span>
+            <span class="tag">EMI / EMC 抑制</span>
+            <span class="tag">软硬件联调</span>
+            <span class="tag">硬件故障排查</span>
+          </div>
+        </div>
+        <div class="stack-group">
+          <span class="sg-label">软件组件</span>
+          <div class="sg-chips">
+            <span class="tag">TFT_eSPI</span>
+            <span class="tag">nofrendo</span>
+            <span class="tag">Tkinter</span>
+            <span class="tag">SQLite</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-meta">
+      <span>© 2026 黄向华 · 嵌入式硬件作品集</span>
+      <span>
+        <a href="https://github.com/huangxh1210" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"></path></svg>
+          github.com/huangxh1210
+        </a>
+        <span class="blink-dot" aria-hidden="true"></span> SYSTEM ONLINE
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReduced) {
+    document.documentElement.classList.add("no-anim");
+  }
+
+  /* 移动端导航 */
+  var toggle = document.getElementById("navToggle");
+  var menu = document.getElementById("navMenu");
+  toggle.addEventListener("click", function () {
+    var open = menu.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.setAttribute("aria-label", open ? "关闭菜单" : "打开菜单");
+  });
+  menu.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") {
+      menu.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  /* 导航高亮（滚动监听） */
+  var links = Array.prototype.slice.call(menu.querySelectorAll("a[href^='#']"));
+  var sections = links.map(function (link) {
+    return document.getElementById(link.getAttribute("href").slice(1));
+  }).filter(Boolean);
+
+  if ("IntersectionObserver" in window && !prefersReduced) {
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var id = entry.target.id;
+        links.forEach(function (link) {
+          link.classList.toggle("active", link.getAttribute("href") === "#" + id);
+        });
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    sections.forEach(function (sec) { spy.observe(sec); });
+  }
+
+  /* 滚动显现 */
+  var revealEls = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+  if ("IntersectionObserver" in window && !prefersReduced) {
+    var revealIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in");
+          revealIO.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    revealEls.forEach(function (el) { revealIO.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add("in"); });
+  }
+})();
+</script>
+</body>
+</html>
